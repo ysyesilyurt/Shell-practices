@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# bash script for starting the vagrant teardown process
+# needs to be executed inside vagrant machine's folder 
+# with "sudo" privileges
+
+echo "Do you want to suspend, halt, or destroy the Vagrant machine? [s/h/d]"
+read choice
+
+if [[ $choice == 's' ]]; then
+	username=1 site=2 jat=3 gat=4 provisioned=5 b1=6 b2=7 b3=8 b4=9 ip=10 vagrant suspend
+elif [[ $choice == 'h' ]]; then
+	username=1 site=2 jat=3 gat=4 provisioned=5 b1=6 b2=7 b3=8 b4=9 ip=10 vagrant halt
+else
+	username=1 site=2 jat=3 gat=4 provisioned=5 b1=6 b2=7 b3=8 b4=9 ip=10 vagrant destroy
+fi

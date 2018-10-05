@@ -1,0 +1,164 @@
+#!/bin/bash
+
+# External provision script for Vagrant machine
+
+# user and project-specific variables
+parent_dir=/var/www/developer.blabla.com
+
+if [[ "$5" == 'n' ]]; then
+	
+	# This is the first time that machine is being provisioned 
+	if ! [ -d "${parent_dir}" ]; then
+		mkdir "${parent_dir}"
+	fi
+
+	# Virtualhost Definition for "developer.blabla.com"
+	# Since each WordPress project will be served under this address,
+	# one Virtualhost definition is sufficient
+		cp /wp_with_vagrant/"vhosts_developer.blabla.com.conf" /etc/httpd/conf.d/
+fi
+	echo "Installing WordPress..." 
+	
+	# creating wp db and user with mysql
+		Q1="CREATE DATABASE ${2} CHARACTER SET utf8 COLLATE utf8_general_ci;"
+		Q2="CREATE USER '${2}'@'localhost' identified by 'P@ssw0rd';"
+		Q3="GRANT ALL PRIVILEGES ON ${2}.* to '${2}'@'localhost';"
+		Q4="FLUSH PRIVILEGES;"
+		SQL="${Q1}${Q2}${Q3}${Q4}"
+
+		mysql -e "$SQL"
+		echo "Database username for the WordPress site is set to $2 and password is set to 'P@ssw0rd'."
+
+	# construct installation folder for site
+		mkdir ${parent_dir}/${2}
+
+	# adding an arbitrary site user with authorization
+		useradd alicengiz
+		chown -R alicengiz:alicengiz ${parent_dir}/${2}
+		echo "User 'alicengiz' has been added and authorized for usage."
+
+	# triggering get-wp-version to get the wp version
+		echo "Triggering get-wp-version job from Jenkins server to learn about site's current version..."
+		curl -sX POST https://jenkins.blabla.com/job/get-wp-version/build --user $1:$3 \
+		--data-urlencode json='{"parameter": [{"name":"SiteName", "value":"'$2'"}]}'
+		echo "Waiting $6 seconds for get-wp-version job to build..."
+		sleep $6
+		curl -sX POST https://jenkins.blabla.com/job/get-wp-version/lastBuild/consoleText --user $1:$3 \
+		--data-urlencode json='{"parameter": [{"name":"SiteName", "value":"'$2'"}]}' > wp_version_output.txt
+		wp_version=$(grep -A 1 test.blabla.com wp_version_output.txt | sed -e '1d')
+
+	# wp & wp-cli installation
+		echo "The WordPress version of test.blabla.com/$2 site seems to be $wp_version, same version will be installed."
+		curl -s -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && chmod +x wp-cli.phar		
+		mv wp-cli.phar /usr/local/bin/wp
+		su - alicengiz -c "cd ${parent_dir}/${2} && wp core download --version=${wp_version} --locale=tr_TR > /dev/null" 
+		su - alicengiz -c "cd ${parent_dir}/${2} && wp core config --dbname=${2} \
+		--dbuser=${2} --dbpass=P@ssw0rd --dbhost=localhost --dbprefix=wp_ > /dev/null" 
+		su - alicengiz -c 'cd '${parent_dir}'/'${2}' && wp core install --url=developer.blabla.com \
+		--title="Welcome to '${2}'" --admin_user="wp_admin" --admin_password="P@ssw0rd" --admin_email="'${1}'@blabla.com" > /dev/null'
+		su - alicengiz -c "cd ${parent_dir}/${2} && wp option update siteurl http://developer.blabla.com/${2} > /dev/null" 
+
+	echo "WordPress $wp_version has been installed correctly."
+		echo "Changing ownership of wp-content/uploads directory to apache user."
+
+		chown -R apache:apache ${parent_dir}/${2}/wp-content/uploads
+
+	# .htaccess direction
+		cp /wp_with_vagrant/.htaccess ${parent_dir}/${2}/
+		sed -i -e "s_RewriteBase /.*_RewriteBase /${2}/_g" ${parent_dir}/${2}/.htaccess
+		sed -i -e "s_RewriteRule . /.*_RewriteRule . /${2}/index.php [L]_g" ${parent_dir}/${2}/.htaccess
+
+		systemctl restart httpd 
+
+	# migration of remote site starts
+	echo "Initiating migration of the site from test.blabla.com/$2" 
+		cd ${parent_dir}/${2}
+
+	# triggering get-wp-uploads
+		echo "Triggering get-wp-uploads job from Jenkins server..."
+		curl -sX POST https://jenkins.blabla.com/job/get-wp-uploads/build --user $1:$3 \
+		--data-urlencode json='{"parameter": [{"name":"SiteAdi", "value":"'$2'"}]}' 
+		echo "Waiting $7 seconds for get-wp-uploads job to build..."
+		sleep $7
+		wget http://download.blabla.com/wp-uploads/${2}.tar.gz -q
+		tar -xzf ${2}.tar.gz 
+		rm -f ${parent_dir}/${2}/${2}.tar.gz
+		rm -rf wp-content/uploads
+		# moving uploads folder
+		mv uploads wp-content/
+		echo "Actual files has been moved from test.blabla.com/$2 to local WordPress as the 'uploads' directory correctly."
+
+	# triggering get-sql-dump
+		echo "Triggering get-sql-dump job from Jenkins server..."
+		curl -sX POST https://jenkins.blabla.com/job/get-sql-dump/build --user $1:$3 \
+		--data-urlencode json='{"parameter": [{"name":"DBName", "value":"t_'$2'"}]}'
+		echo "Waiting $8 seconds for get-sql-dump job to build..."
+		sleep $8
+		sql_build_name=test-t_${2}-$(date +%d-%m-%Y)
+		wget http://download.blabla.com/sqldump/${sql_build_name}.sql.gz -q
+	
+	# importing db
+		zcat ${sql_build_name}.sql.gz | mysql ${2}
+		rm -f ${parent_dir}/${2}/${sql_build_name}.sql.gz 
+		echo "Database of test.blabla.com/$2 has been imported to local WordPress correctly."
+
+	# triggering get-wp-plugin-list
+		echo "Triggering get-wp-plugin-list job from Jenkins server..."
+		curl -sX POST https://jenkins.blabla.com/job/get-wp-plugin-list/build --user $1:$3 \
+		--data-urlencode json='{"parameter": [{"name":"SiteName", "value":"'$2'"}]}'
+		echo "Waiting $9 seconds for get-wp-plugin-list job to build..."
+		sleep $9
+		curl -sX POST https://jenkins.blabla.com/job/get-wp-plugin-list/lastBuild/consoleText --user $1:$3 \
+		--data-urlencode json='{"parameter": [{"name":"SiteName", "value":"'$2'"}]}' > plugin_list_output.txt
+		count=1
+		plugin_name=$(grep -A $count version plugin_list_output.txt | sed -e "1,${count}d" | awk '{print $1};')
+		plugin_version=$(grep -A $count version plugin_list_output.txt | sed -e "1,${count}d" | awk '{print $NF};')
+		plugin_status=$(grep -A $count version plugin_list_output.txt | sed -e "1,${count}d" | awk '{print $2};')
+
+	# installing plugins
+		while [[ "$plugin_name" != "" ]]; do
+			if [ plugin_status == "active" ]; then
+				wp plugin install $plugin_name --version=$plugin_version --activate > /dev/null
+			else
+				wp plugin install $plugin_name --version=$plugin_version > /dev/null
+			fi
+			let count+=1
+			plugin_name=$(grep -A $count version plugin_list_output.txt | sed -e "1,${count}d" | awk '{print $1};')
+			plugin_version=$(grep -A $count version plugin_list_output.txt | sed -e "1,${count}d" | awk '{print $NF};')
+			plugin_status=$(grep -A $count version plugin_list_output.txt | sed -e "1,${count}d" | awk '{print $2};')
+		done
+		echo "Same plugins on test.blabla.com/$2 has been installed to local WordPress correctly, installed plugins:"
+		count=1
+		plugin_name=$(grep -A $count version plugin_list_output.txt | sed -e "1,${count}d" | awk '{print $1};')
+		plugin_version=$(grep -A $count version plugin_list_output.txt | sed -e "1,${count}d" | awk '{print $NF};')
+		plugin_status=$(grep -A $count version plugin_list_output.txt | sed -e "1,${count}d" | awk '{print $2};')
+		while [[ "$plugin_name" != "" ]]; do
+			echo "$plugin_name $plugin_version durum: $plugin_status"
+			let count+=1
+			plugin_name=$(grep -A $count version plugin_list_output.txt | sed -e "1,${count}d" | awk '{print $1};')
+			plugin_version=$(grep -A $count version plugin_list_output.txt | sed -e "1,${count}d" | awk '{print $NF};')
+			plugin_status=$(grep -A $count version plugin_list_output.txt | sed -e "1,${count}d" | awk '{print $2};')
+		done
+		rm -f /var/www/wp_version_output.txt ${parent_dir}/${2}/plugin_list_output.txt
+
+
+	# changing the name to developer.blabla.com/$2
+		wp search-replace https://test.blabla.com/${2} http://developer.blabla.com/${2} > /dev/null
+		echo "A search-replace between test.blabla.com/$2 and developer.blabla.com/$2 site has been carried out."
+
+
+	# cloning git repository for theme
+		echo "Checking the availability of test.blabla.com/$2 's theme from gitlab.blabla.com/web/$2"
+		cd ${parent_dir}/${2}/wp-content/themes && rm -rf *
+		status=$(curl -s --head -w %{http_code} https://gitlab.blabla.com/api/v3/projects/web%2F${2} -o /dev/null \
+		--header "PRIVATE-TOKEN: ${4}")
+	    if [[ $status == 200 ]]; then
+			# project existing
+	        echo "Theme is available on gitlab server, it will be cloned from 'develmaster' branch of gitlab.blabla.com/web/$2"
+			git clone -b develmaster https://oauth2:${4}@gitlab.blabla.com/web/${2}.git . > /dev/null
+	    else
+	        echo "Theme is not available on the gitlab, please handle theme situation manually."
+	    fi
+
+	echo -e "WordPress developer machine is ready for you with developer.blabla.com/$2 name.\n\
+	You can log in to the machine with 'vagrant ssh', happy coding:)" 

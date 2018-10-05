@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# bash script for starting the vagrant up process
+# needs to be executed inside vagrant machine's folder 
+# with "sudo" priviliges
+
+echo "Did you suspend or halt the machine? [y/n]"
+read machine_situation
+if [[ "$machine_situation" == 'y' ]]; then
+	echo "Starting inactive machine..."
+	username=1 site=2 jat=3 gat=4 provisioned=5 b1=6 b2=7 b3=8 b4=9 ip=10 vagrant up
+else
+	echo -n "Please enter your username:"
+	read user
+	echo -n "Please enter the name of the WordPress project that you are going to install:"
+	read site_to_install
+	echo -n "Please enter your Jenkins api token:"
+	read jenkins_api_token
+	echo -n "Please enter your Gitlab api token:"
+	read gitlab_api_token
+	echo "Has this machine provisioned before? [y/n]"
+	read has_provisioned_before
+	echo -n "get-wp-version Jenkins job build time for $site_to_install project:"
+	read build1
+	echo -n "get-wp-uploads Jenkins job build time for $site_to_install project:"
+	read build2
+	echo -n "get-sql-dump Jenkins job build time for $site_to_install project:"
+	read build3
+	echo -n "get-wp-plugin-list Jenkins job build time for $site_to_install project:"
+	read build4
+	echo -n "Please enter the IP address that you are going to use for this site:"
+	read ip_address
+
+	if [[ "$has_provisioned_before" == 'n' ]]; then
+		echo -e -n "The machine is being provisioned for the first time.\nInitiating process..."
+    	sudo echo "$ip_address ${site_to_install}.com" >> /etc/hosts 
+		username=$user site=$site_to_install jat=$jenkins_api_token gat=$gitlab_api_token provisioned=$has_provisioned_before \
+		b1=$build1 b2=$build2 b3=$build3 b4=$build4 ip=$ip_address vagrant up
+	else
+		echo -e "The machine is already provisioned before,\nInitiating additional provisioning process with setup.sh..."
+		username=$user site=$site_to_install jat=$jenkins_api_token gat=$gitlab_api_token provisioned=$has_provisioned_before \
+		b1=$build1 b2=$build2 b3=$build3 b4=$build4 ip=$ip_address vagrant provision
+	fi
+fi
+
+

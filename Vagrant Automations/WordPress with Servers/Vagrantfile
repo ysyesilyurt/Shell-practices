@@ -1,0 +1,57 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Vagrantfile for Vagrant Machine
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version 
+Vagrant.configure("2") do |config|
+  # The Name of the Vagrant Box that you will be using goes here 
+  # Vagrant Box needs to have Apache, MySQL and PHP installed beforehand!
+  config.vm.box = "centos7-vagrant-wp"
+
+  # Some arguments for external setup shell script 
+  $u=ENV['username']
+  $sti=ENV['site']
+  $jen=ENV['jat']
+  $git=ENV['gat']
+  $p=ENV['provisioned']
+  $bu1=ENV['b1']
+  $bu2=ENV['b2']
+  $bu3=ENV['b3']
+  $bu4=ENV['b4']
+  $ip_add=ENV['ip']
+
+  # Automatic box update checking option is set on default of Vagrant. 
+  # To disable this, one can use: 
+  # config.vm.box_check_update = false
+  # Once set, you can check for update manually with `vagrant box outdated`
+
+  # Creating a private network to be able to serve WordPress privately,
+  # This option allows host-only access to the machine using a specific IP.
+  config.vm.network "private_network", ip: $ip_add
+
+  # To make the machine appear as another physical device on
+  # your network, you can use:
+  # config.vm.network "public_network"
+  # which will construct a bridged network between
+  # guest and host machine
+
+  # Provider-specific configuration so you can fine-tune various
+  # backing providers for Vagrant. These expose provider-specific options.
+  # Example for VirtualBox:
+  #
+  # config.vm.provider "virtualbox" do |vb|
+  #   # Display the VirtualBox GUI when booting the machine
+  #   vb.gui = true
+  #
+  #   # Customize the amount of memory on the VM:
+  #   vb.memory = "1024"
+  # end
+
+  # Provisioning machine with an external shell script
+  config.vm.provision "shell" do |s|
+    s.args = [$u, $sti, $jen, $git, $p, $bu1, $bu2, $bu3, $bu4]
+    s.path = "setup"
+  end
+end
