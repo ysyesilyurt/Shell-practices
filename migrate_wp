@@ -2,6 +2,7 @@
 
 # bash script for automating WordPress migrations 
 # from one IP to another with rsync on private network
+# WordPress needs to be installed on the host machine beforehand!
 
 echo -e "Where do you want to migrate WordPress project from? (enter IP address of that machine please)\n\
 		(Make sure that you can create an rsync connection with that machine)"
