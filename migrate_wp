@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# bash script for automating WordPress migrations 
+# from one IP to another with rsync on private network
+
+echo -e "Where do you want to migrate WordPress project from? (enter IP address of that machine please)\n\
+		(Make sure that you can create an rsync connection with that machine)"
+read ip_address
+echo -n "Username for connection:"
+read username
+echo -n "Password for connection:"
+read password
+echo "Initiating migration of WordPress project from ${ip_address}"
+echo -n "What is the URL of the site you are going to migrate?:"
+read old_site_url
+echo -n "How do you want to name the WordPress site? (as '****.com'):"
+read site_name
+echo -n "Is this going to be the first time that you create an rsync connection with this machine from your machine? [y/n]:"
+read first
+
+	# Installing expect for automating user prompts on connection
+	yum install -y expect > /dev/null	
+
+if [[ first == 'y' ]]; then
+	# First time creating a connection so user will be prompted extra for ECDSA key fingerprint
+	
+	# Creating an ssh connection to get the sql dump with expect 
+	SSH_OUTPUT=$(expect -c "
+
+	set timeout -1
+	spawn ssh ${username}@${ip_address} \"cd /var/www/${old_site_url}/ && wp db export dump.sql\"
+
+	expect \"Are you sure you want to continue connecting (yes/no)? \"
+	send \"yes\r\"
+
+	expect \"${username}@${ip_address}'s password:\"
+	send \"${password}\r\"  
+
+	expect eof
+	")
+else
+	# User has created a connection with that machine from his/her machine before
+
+	# Creating an ssh connection to get the sql dump with expect 
+	SSH_OUTPUT=$(expect -c "
+
+	set timeout -1
+	spawn ssh ${username}@${ip_address} \"cd /var/www/${old_site_url}/ && wp db export dump.sql\"
+
+	expect \"${username}@${ip_address}'s password:\"
+	send \"${password}\r\"  
+
+	expect eof
+	")
+
+fi
+	mkdir /var/www/${site_name}.com && cd /var/www/${site_name}.com
+
+	# Creating an rsync connection to synchronize both sites for migration with expect
+	RSYNC_OUTPUT=$(expect -c "
+
+	set timeout -1
+	spawn rsync -avz --exclude wp-config.php ${username}@${ip_address}:/var/www/${old_site_url}/* .
+
+	expect \"${username}@${ip_address}'s password:\"
+	send \"${password}\r\"  
+
+	expect eof
+	")
+
+	wp db import dump.sql
+	wp search-replace http://${old_site_url} http://${site_name}.com
+
+	yum remove -y expect > /dev/null
+
+echo "WordPress has been migrated successfully with ${site_name}.com name." 

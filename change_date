@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# bash script for changing file modification date for files
+# that has a year->month->file directory hierarchy 
+
+
+IFS=$'\n'
+
+for file in $(find -type f); do
+        dir="$(dirname "$file")"
+        year="$(basename "$(dirname "$dir")")"
+        month=${dir##*/}
+        date="$year-$month-1"
+        touch -d $date $file
+done
