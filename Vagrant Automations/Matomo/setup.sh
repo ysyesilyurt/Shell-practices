@@ -12,31 +12,31 @@ fi
 echo "Installing nginx..."
 	
 	# adding the CentOS 7 EPEL repository
-	yum -y install epel-release 
+	yum -y install epel-release > /dev/null
 	# installing nginx
-	yum -y install nginx 
-	firewall-cmd --add-port=80/tcp --permanent 
-	firewall-cmd --add-port=443/tcp --permanent  
-	firewall-cmd --reload  
-	systemctl start nginx
- 	systemctl enable nginx
+	yum -y install nginx > /dev/null
+	firewall-cmd --add-port=80/tcp --permanent > /dev/null
+	firewall-cmd --add-port=443/tcp --permanent > /dev/null
+	firewall-cmd --reload > /dev/null
+	systemctl start nginx 
+ 	systemctl enable nginx > /dev/null
 
 echo "Installing latest required PHP packages from IUS repository..."
 	
 	# Downloading IUS repository installation script
 	curl -s 'https://setup.ius.io/' -o setup-ius.sh
 	# Installing IUS repository with script
-	bash setup-ius.sh  
-	yum -y install php70u-json php70u-cli php70u-mysqlnd php70u-gd php70u-xml php70u-mbstring  
+	bash setup-ius.sh > /dev/null
+	yum -y install php70u-json php70u-cli php70u-mysqlnd php70u-gd php70u-xml php70u-mbstring > /dev/null
 	systemctl restart nginx 
 	rm -f setup-ius.sh 
 
 echo "Installing MySQL from Percona MySQL server..." 
 	
 	# Adding Percona MySQL server repository
-	yum -y install https://www.percona.com/redir/downloads/percona-release/redhat/0.1-4/percona-release-0.1-4.noarch.rpm  
-	yum -y install Percona-Server-server-57 Percona-Server-client-57 Percona-Server-devel-57  
-	yum -y update  
+	yum -y install https://www.percona.com/redir/downloads/percona-release/redhat/0.1-4/percona-release-0.1-4.noarch.rpm > /dev/null  
+	yum -y install Percona-Server-server-57 Percona-Server-client-57 Percona-Server-devel-57 > /dev/null
+	yum -y update > /dev/null
 	systemctl start mysqld 
 	systemctl enable mysqld 
 
@@ -46,7 +46,7 @@ echo "Installing MySQL from Percona MySQL server..."
 	B=$(echo "${A}" | awk '{print $NF}')
 
 	# Installing expect for automating user prompts 
-	yum install -y expect  
+	yum install -y expect > /dev/null
 
 	# MySQL Password goes here
 	MYSQL_ROOT_PASSWORD="P@ssw0rd"
@@ -92,8 +92,6 @@ echo "Installing MySQL from Percona MySQL server..."
 	expect eof
 	")
 
-	echo $MYSQL_INS_OUTPUT
-
 	# Creating ".my.cnf" to make MySQL not to prompt user to enter password on each use 
 	echo -e "[client]\nuser=root\nhost=localhost\npassword='P@ssw0rd'" > /root/.my.cnf
 	# Ensuring that this file can only be seen by root user
@@ -123,11 +121,11 @@ echo "Installing Matomo..."
 	mysql -e "$SQL"
 
 	# Downloading and unzipping latest release
-	cd ${parent_dir} && yum -y install wget && wget http://builds.piwik.org/latest.tar.gz
-	tar xzvf latest.tar.gz
+	cd ${parent_dir} && wget http://builds.piwik.org/latest.tar.gz -q
+	tar xzf latest.tar.gz
 
 	# Installing php-fpm additional php package 
-	yum -y install php70u-fpm
+	yum -y install php70u-fpm > /dev/null
 	# Configuring php-fpm pool settings correctly
 	rm -rf /etc/php-fpm.d/www.conf && cp /vagrant/www.conf /etc/php-fpm.d/
 
@@ -141,9 +139,8 @@ echo "Installing Matomo..."
 
 	# Starting the services
 	systemctl start php-fpm
-	systemctl enable php-fpm
+	systemctl enable php-fpm > /dev/null
 	systemctl restart nginx
 
 	echo -e "Matomo has been installed to Vagrant Virtual Machine successfully with ${1}.com name.\n\
 	You can log in to your machine with 'vagrant ssh'."  
-

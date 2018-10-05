@@ -11,29 +11,29 @@ fi
 	
 echo "Installing Apache..."
 
-	yum -y install httpd 
-	firewall-cmd --add-port=80/tcp --permanent 
-	firewall-cmd --add-port=443/tcp --permanent 
-	firewall-cmd --reload 
+	yum -y install httpd  > /dev/null
+	firewall-cmd --add-port=80/tcp --permanent > /dev/null 
+	firewall-cmd --add-port=443/tcp --permanent > /dev/null 
+	firewall-cmd --reload > /dev/null
 	systemctl start httpd 
-	systemctl enable httpd
+	systemctl enable httpd > /dev/null
 
 echo "Installing latest required PHP packages from IUS repository..."
 	
 	# Downloading IUS repository installation script
 	curl -s 'https://setup.ius.io/' -o setup-ius.sh
 	# Installing IUS repository with script
-	bash setup-ius.sh  
-	yum -y install php70u-json mod_php70u php70u-cli php70u-mysqlnd php70u-gd php70u-xml php70u-mbstring 
-	systemctl restart httpd 
+	bash setup-ius.sh > /dev/null
+	yum -y install php70u-json mod_php70u php70u-cli php70u-mysqlnd php70u-gd php70u-xml php70u-mbstring > /dev/null
+	systemctl restart httpd > /dev/null
 	rm -f setup-ius.sh 
 
 echo "Installing MySQL from Percona MySQL server..." 
 	
 	# Adding Percona MySQL server repository
-	yum -y install https://www.percona.com/redir/downloads/percona-release/redhat/0.1-4/percona-release-0.1-4.noarch.rpm  
-	yum -y install Percona-Server-server-57 Percona-Server-client-57 Percona-Server-devel-57  
-	yum -y update  
+	yum -y install https://www.percona.com/redir/downloads/percona-release/redhat/0.1-4/percona-release-0.1-4.noarch.rpm > /dev/null  
+	yum -y install Percona-Server-server-57 Percona-Server-client-57 Percona-Server-devel-57 > /dev/null
+	yum -y update > /dev/null
 	systemctl start mysqld 
 	systemctl enable mysqld 
 
@@ -43,7 +43,7 @@ echo "Installing MySQL from Percona MySQL server..."
 	B=$(echo "${A}" | awk '{print $NF}')
 
 	# Installing expect for automating user prompts 
-	yum install -y expect  
+	yum install -y expect > /dev/null
 
 	# MySQL Password goes here
 	MYSQL_ROOT_PASSWORD="P@ssw0rd"
@@ -88,8 +88,6 @@ echo "Installing MySQL from Percona MySQL server..."
 	send \"y\r\"
 	expect eof
 	")
-
-	echo $MYSQL_INS_OUTPUT
 
 	# Creating ".my.cnf" to make MySQL not to prompt user to enter password on each use 
 	echo -e "[client]\nuser=root\nhost=localhost\npassword='P@ssw0rd'" > /root/.my.cnf
