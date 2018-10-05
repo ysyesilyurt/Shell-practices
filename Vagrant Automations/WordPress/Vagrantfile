@@ -44,6 +44,6 @@ Vagrant.configure("2") do |config|
   # Provisioning machine with an external shell script
   config.vm.provision "shell" do |s|
     s.args = $sti
-    s.path = "setup.sh"
+    s.path = "setup"
   end
 end
