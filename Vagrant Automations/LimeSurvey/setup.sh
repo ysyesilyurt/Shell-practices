@@ -42,8 +42,8 @@ echo "Installing MySQL from Percona MySQL server..."
 
 	# Getting the temporary root password that is predefined
 	# on default to run "mysql_secure_installation" script
-	A=$(grep "temporary password" /var/log/mysqld.log)
-	B=$(echo "${A}" | awk '{print $NF}')
+	temp_passwrd=$(grep "temporary password" /var/log/mysqld.log)
+	passwrd=$(echo "${temp_password}" | awk '{print $NF}')
 
 	# Installing expect for automating user prompts 
 	yum install -y expect > /dev/null
@@ -58,7 +58,7 @@ echo "Installing MySQL from Percona MySQL server..."
 	spawn mysql_secure_installation
 
 	expect \"Enter password for user root:\"
-	send \"$B\r\"
+	send \"$passwrd\r\"
 
 	expect \"New password:\"
 	send \"${MYSQL_ROOT_PASSWORD}\r\"
@@ -96,8 +96,7 @@ echo "Installing MySQL from Percona MySQL server..."
 	echo -e "[client]\nuser=root\nhost=localhost\npassword='P@ssw0rd'" > /root/.my.cnf
 	# Ensuring that this file can only be seen by root user
 	chmod 0600 /root/.my.cnf
-	# Adding MySQL configurations on "mysql_settings"
-	# to "/etc/my.cnf"
+	# Adding MySQL configurations on "mysql_settings" to "/etc/my.cnf" 
 	sed -i '/Systemd/r /vagrant/mysql_settings' /etc/my.cnf
 	# A "slow.log" file needs to be created manually at first to log 'slow' logs 
 	touch /var/log/mysqld-slow.log
@@ -111,7 +110,7 @@ echo "Installing LimeSurvey..."
 	setenforce 0
 	sed -i -e "s/SELINUX=enforcing.*/SELINUX=disabled/g" /etc/sysconfig/selinux
 
-	# Creating database and user with mysql for Matomo
+	# Creating database and user with mysql for LimeSurvey
 	Q1="CREATE DATABASE ${1} CHARACTER SET utf8 COLLATE utf8_general_ci;"
 	Q2="CREATE USER '${1}'@'localhost' identified by 'P@ssw0rd';"
 	Q3="GRANT ALL PRIVILEGES ON ${1}.* to '${1}'@'localhost';"

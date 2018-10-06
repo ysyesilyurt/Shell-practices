@@ -15,7 +15,7 @@ if [[ "$5" == 'n' ]]; then
 	# Virtualhost Definition for "developer.blabla.com"
 	# Since each WordPress project will be served under this address,
 	# one Virtualhost definition is sufficient
-		cp /wp_with_vagrant/"vhosts_developer.blabla.com.conf" /etc/httpd/conf.d/
+		cp /vagrant/"vhosts_developer.blabla.com.conf" /etc/httpd/conf.d/
 fi
 	echo "Installing WordPress..." 
 	
@@ -51,7 +51,7 @@ fi
 		echo "The WordPress version of test.blabla.com/$2 site seems to be $wp_version, same version will be installed."
 		curl -s -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && chmod +x wp-cli.phar		
 		mv wp-cli.phar /usr/local/bin/wp
-		su - alicengiz -c "cd ${parent_dir}/${2} && wp core download --version=${wp_version} --locale=tr_TR > /dev/null" 
+		su - alicengiz -c "cd ${parent_dir}/${2} && wp core download --version=${wp_version} > /dev/null" 
 		su - alicengiz -c "cd ${parent_dir}/${2} && wp core config --dbname=${2} \
 		--dbuser=${2} --dbpass=P@ssw0rd --dbhost=localhost --dbprefix=wp_ > /dev/null" 
 		su - alicengiz -c 'cd '${parent_dir}'/'${2}' && wp core install --url=developer.blabla.com \
@@ -59,12 +59,12 @@ fi
 		su - alicengiz -c "cd ${parent_dir}/${2} && wp option update siteurl http://developer.blabla.com/${2} > /dev/null" 
 
 	echo "WordPress $wp_version has been installed correctly."
+		
 		echo "Changing ownership of wp-content/uploads directory to apache user."
-
 		chown -R apache:apache ${parent_dir}/${2}/wp-content/uploads
 
-	# .htaccess direction
-		cp /wp_with_vagrant/.htaccess ${parent_dir}/${2}/
+	# .htaccess configuration
+		cp /vagrant/.htaccess ${parent_dir}/${2}/
 		sed -i -e "s_RewriteBase /.*_RewriteBase /${2}/_g" ${parent_dir}/${2}/.htaccess
 		sed -i -e "s_RewriteRule . /.*_RewriteRule . /${2}/index.php [L]_g" ${parent_dir}/${2}/.htaccess
 
@@ -160,5 +160,5 @@ fi
 	        echo "Theme is not available on the gitlab, please handle theme situation manually."
 	    fi
 
-	echo -e "WordPress developer machine is ready for you with developer.blabla.com/$2 name.\n\
-	You can log in to the machine with 'vagrant ssh', happy coding:)" 
+	echo -e "Migrated WordPress project is ready for you with developer.blabla.com/$2 name.\n\
+	You can log in to the machine with 'vagrant ssh'." 

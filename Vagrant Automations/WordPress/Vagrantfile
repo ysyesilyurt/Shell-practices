@@ -7,12 +7,11 @@
 # configures the configuration version 
 Vagrant.configure("2") do |config|
   # The Name of the Vagrant Box that you will be using goes here 
-  # e.g. I used my "centos/7" virtual box in the Vagrant cloud 
+  # e.g. I used "centos/7" virtual box in the Vagrant cloud 
   config.vm.box = "centos/7"
 
-  # Some arguments for external setup shell script 
+  # Argument for external setup script 
   $sti=ENV['site']
-  $p=ENV['provisioned']
 
   # Automatic box update checking option is set on default of Vagrant. 
   # To disable this, one can use: 
