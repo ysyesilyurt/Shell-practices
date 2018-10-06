@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# bash script for getting backups of LDAP servers
+# Gets both config and data backups
+
+CONFIG_BACKUP_FILE=ldap-config-$( date +%Y-%m-%d-%H:%M ).ldif
+DB_BACKUP_FILE=ldap-db-$( date +%Y-%m-%d-%H:%M ).ldif
+BACKUP_DIR=/home/backups
+
+if ! [ -d "${BACKUP_DIR}" ]; then
+        mkdir "${BACKUP_DIR}"
+fi
+
+slapcat -n 0 -l $BACKUP_DIR/$CONFIG_BACKUP_FILE && slapcat -n 1 -l $BACKUP_DIR/$DB_BACKUP_FILE
+
